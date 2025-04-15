@@ -1,0 +1,52 @@
+syntax = "proto3";
+
+package chat;
+
+// Chat service definition
+service ChatService {
+  // Send message stream between users
+  rpc ChatStream(stream ChatMessage) returns (stream ChatMessage) {}
+  
+  // Join the chat room
+  rpc JoinChat(User) returns (JoinResponse) {}
+
+  // Client streaming: Send multiple messages and get a summary response
+  rpc SendMessages(stream ChatMessage) returns (MessageResponse) {}
+  
+  // Server streaming: Get chat history or announcements
+  rpc GetChatHistory(HistoryRequest) returns (stream ChatMessage) {}
+}
+
+// Message structure
+message ChatMessage {
+  string user_id = 1;
+  string username = 2;
+  string message = 3;
+  string timestamp = 4;
+}
+
+// User information
+message User {
+  string user_id = 1;
+  string username = 2;
+}
+
+// Response for joining chat
+message JoinResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+// Response for client streaming messages
+message MessageResponse {
+  bool success = 1;
+  int32 message_count = 2;
+  string summary = 3;
+}
+
+// Request for chat history
+message HistoryRequest {
+  string user_id = 1;
+  int32 message_limit = 2;
+  bool include_system_messages = 3;
+}
