@@ -59,6 +59,7 @@ def run():
         print("- Type your message and press Enter to send")
         print("- Type '/history <number>' to get chat history (e.g. '/history 10')")
         print("- Type '/batch' to start batch messaging mode")
+        print("- Type '/ping' to check connection latency to the server")
         print("- Type 'exit' to leave the chat")
         print("-" * 40)
         
@@ -86,7 +87,7 @@ def run():
         # Now handle user input
         try:
             while not exit_event.is_set():
-                message = get_user_input("> ")
+                message = get_user_input(f"[ {username} ] >>> ")
                 if message is None or message.lower() == 'exit':
                     exit_event.set()
                     break
@@ -118,6 +119,10 @@ def run():
                     
                     if batch_messages:
                         send_batch_messages(stub, user_id, username, batch_messages)
+                    continue
+                
+                if message == '/ping':
+                    ping_server(stub, user_id, username)
                     continue
                 
                 # Add message to the queue for the stream to send
@@ -194,7 +199,7 @@ def handle_chat_stream(stub, user_id, username, message_queue, exit_event, strea
             
             # Display messages from other users (clear line, print message, restore prompt)
             print(f"\r[{response.timestamp}] {response.username}: {response.message}")
-            print("> ", end='', flush=True)
+            print(f"[ {username} ] >>> ", end='', flush=True)
             
     except grpc.RpcError as e:
         print(f"\rStream error: {e.details() if hasattr(e, 'details') else str(e)}")
@@ -302,6 +307,35 @@ def send_batch_messages(stub, user_id, username, messages):
         
     except grpc.RpcError as e:
         print(f"Error sending batch messages: {e.details() if hasattr(e, 'details') else str(e)}")
+
+
+def ping_server(stub, user_id, username):
+    """Send a ping to the server and measure response time"""
+    try:
+        print("Pinging server...")
+        start_time = time.time()
+        
+        # Create a ping message with a timestamp
+        now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        ping_message = ChatMessage(
+            user_id=user_id,
+            username=username,
+            message="PING",
+            timestamp=now
+        )
+        
+        # Send ping through JoinChat since it's a simple RPC call
+        response = stub.JoinChat(User(user_id=user_id, username=username))
+        
+        # Calculate roundtrip time
+        end_time = time.time()
+        roundtrip_ms = (end_time - start_time) * 1000  # Convert to milliseconds
+        
+        print(f"Server responded in {roundtrip_ms:.2f} ms")
+        print(f"Server message: {response.message}")
+        
+    except grpc.RpcError as e:
+        print(f"Error pinging server: {e.details() if hasattr(e, 'details') else str(e)}")
 
 
 if __name__ == '__main__':

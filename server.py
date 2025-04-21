@@ -30,6 +30,14 @@ class ChatServicer(ChatServiceServicer):
         user_id = request.user_id if request.user_id else str(uuid.uuid4())
         username = request.username
         
+        # Check if this is a ping request (user already exists)
+        is_ping = user_id in self.usernames
+        
+        if is_ping:
+            # This is likely a ping request, respond with pong
+            print(f"PING received from: {username} (ID: {user_id})")
+            return JoinResponse(success=True, message=f"PONG! Server is alive and responding!")
+        
         print(f"User joined: {username} (ID: {user_id})")
         
         # Store the username
